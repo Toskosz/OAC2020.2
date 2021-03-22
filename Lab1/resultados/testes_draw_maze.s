@@ -1,20 +1,10 @@
 .data
-.include "mazeteste.s"
-CAMINHO: .space 153600
-COR: .byte 15
+.include "laranja.data"
+
 
 .text
-.MAIN:	
-	la a0, mazeteste
-	jal draw_maze
-	la a0, mazeteste
-	la a1, CAMINHO
-	jal solve_maze
-	la a0, caminho
-	jal animate
-	li a7, 10
-	ecall
-	
+
+la a0, laranja
 draw_maze:
 	li t0,0xFF000000	# endereco inicial da Memoria VGA - Frame 0
 	lw a1,0(a0)        	# numero de coluna
@@ -39,7 +29,7 @@ CENTRALIZA:
 	li t2, 0		# pixeis feitos até o momento
 	mul a3, a1, a2		# pixeis no total 
 LOOP2:
-	bge t2, a3, FIM_DRAW	# verifica se ja todos os pixeis ja foram feitos
+	bge t2, a3, FIM
 	li a4, 0
 LOOP1: 	
 	beq a4,a1, PROXIMA_LINHA	# Terminou de desenha agora vai centralziar
@@ -50,36 +40,11 @@ LOOP1:
 	addi t2,t2,1			# +1 pixel pintado 
 	addi a4,a4,1			# +1 coluna na linha
 	j LOOP1				# volta a verificar
+FIM:
+	li, a7, 10
+	ecall
 	
 PROXIMA_LINHA:
 	addi t0,t0,320        		#proxima linha+numero de colunas
     	sub t0,t0,a1       		#subtrai o numero de colunas
-    	j LOOP2
-
-FIM_DRAW:
-	ret
-	
-animate:
-	lw a1, 0(a0)		# numero de passos
-	addi a0, a0, 4		# pula para o x da primeira coordenada
-	li t4, 0		# passos realizados até agora
-	la t5, COR
-LOOP3:
-	li t0, 0xFF000000	# frame incial bitdisplay
-	lw a2, 0(a0)		# x
-	lw a3, 4(a0)		# y
-	li t1, 320
-	
-	mul t2, a3, t1		# Y * 320
-	add t2, t2, a2		# X + (Y*320)		
-	add t0, t0, t2		# FF00000000 + (Y*320) + X
-	
-	lb t3, 0(t5)		# cor vermelha
-	sb t3, 0(t0)		# carrega na tela a cor vermelha 
-	addi a0, a0, 8		# vai pro proxima par de coordenadas x,y
-	addi t4, t4, 1		# +1 pixel pintado
-	beq t4, a1, ANIMATE_FIM
-	j LOOP3
-
-ANIMATE_FIM:
-	ret
+    	j LOOP2        
