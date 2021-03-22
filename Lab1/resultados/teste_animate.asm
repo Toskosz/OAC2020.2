@@ -1,20 +1,17 @@
 .data
 .include "mazeteste.s"
-CAMINHO: .space 153600
+CAMINHO: .word 51, 159,110, 159,111, 160,111, 161,111, 162,111, 163,111, 164,111, 165,111, 165,112, 165,113, 166,113, 167,113, 168,113, 169,113, 169,114, 169,115, 169,116, 169,117, 168,117, 167,117, 167,116, 167,115, 166,115, 165,115, 165,116, 165,117, 165,118, 165,119, 166,119, 167,119, 167,120, 167,121, 168,121, 169,121, 169,122, 169,123, 169,124, 169,125, 168,125, 167,125, 166,125, 165,125, 165,126, 165,127, 165,128, 165,129, 164,129, 163,129, 162,129, 161,129, 161,130
 COR: .byte 15
 
 .text
 .MAIN:	
 	la a0, mazeteste
 	jal draw_maze
-	la a0, mazeteste
-	la a1, CAMINHO
-	jal solve_maze
-	la a0, caminho
+	la a0, CAMINHO
 	jal animate
 	li a7, 10
 	ecall
-	
+
 draw_maze:
 	li t0,0xFF000000	# endereco inicial da Memoria VGA - Frame 0
 	lw a1,0(a0)        	# numero de coluna
@@ -39,7 +36,7 @@ CENTRALIZA:
 	li t2, 0		# pixeis feitos até o momento
 	mul a3, a1, a2		# pixeis no total 
 LOOP2:
-	bge t2, a3, FIM_DRAW	# verifica se ja todos os pixeis ja foram feitos
+	bge t2, a3, FIM
 	li a4, 0
 LOOP1: 	
 	beq a4,a1, PROXIMA_LINHA	# Terminou de desenha agora vai centralziar
@@ -50,15 +47,14 @@ LOOP1:
 	addi t2,t2,1			# +1 pixel pintado 
 	addi a4,a4,1			# +1 coluna na linha
 	j LOOP1				# volta a verificar
+FIM:
+	ret
 	
 PROXIMA_LINHA:
 	addi t0,t0,320        		#proxima linha+numero de colunas
     	sub t0,t0,a1       		#subtrai o numero de colunas
-    	j LOOP2
+    	j LOOP2        
 
-FIM_DRAW:
-	ret
-	
 animate:
 	lw a1, 0(a0)		# numero de passos
 	addi a0, a0, 4		# pula para o x da primeira coordenada
@@ -83,3 +79,8 @@ LOOP3:
 
 ANIMATE_FIM:
 	ret
+	
+	
+	
+	
+	
