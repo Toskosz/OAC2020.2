@@ -1,0 +1,285 @@
+.data
+.include "mazeteste.s"
+CAMINHO: .space 153600
+VERMELHO: .byte 15
+AZUL: .byte 200 
+ENTRADA: .space 8
+SAIDA: .space 8
+
+.text
+la a0, mazeteste
+la a1, CAMINHO
+solve_maze:
+	addi sp, sp, -8	# prepara a pilha para receber 2 words
+	sw ra, 4(sp)	# empilha ra(End. Retorno)
+	sw a1, 0(sp)	# empilha endereco caminho
+
+	li t0,0xFF000000	# endereco inicial da Memoria VGA - Frame 0
+	lw a1,0(a0)        	# numero de coluna
+    	lw a2,4(a0)        	# numero de linhas
+	addi a0,a0,8		# primeiro pixels depois das informações de nlin ncol
+	
+	jal CENTRALIZA
+	lw a1, 0(sp)# restaurao valordo argumenton
+	lw ra, 4(sp)# restaurao endereçode retorno
+	addi sp, sp, 8
+
+	addi sp, sp, -4
+	sw ra, 0(sp)											# a's usados 
+	jal ACHA_ENTRADA										# a0 = mazeteste
+	lw ra, 0(sp)											# a1 = CAMINHNO
+	addi sp, sp, 4											# t0 = pixel atual 
+	
+	addi sp, sp, -4
+	sw ra, 0(sp)
+	jal ACHA_SAIDA
+	lw ra, 0(sp)
+	addi sp, sp, 4
+	
+	
+	li a2, 0			# direcao, 0=cima
+	li a3, 1			# 1=direita
+	li a4, 2			# 2=baixo
+	li a5, 3			# 3=esquerda
+	li a6, 0			# quantidade de caminhos do pixel 
+	
+	la t6, ENTRADA
+	li t5, 320
+	lw t3, 0(t6)
+	lw t4, 4(t6)
+	mul t2, t5, t4		# 
+	add t2, t2, t3		# ENDERECO = FF000000 + 320*Y + X)
+	add t1, t1, t2		#
+	
+LOOP_SOLVE:
+	beq t1, t0, SOLVE2
+	
+	lb t1, 0(t0)
+	li t2, 255
+	beq t1,t2, EH_BRANCO
+	li t2, 15
+	beq t1,t2, EH_VERMELHO
+	li t2, 200
+	beq t1, t2, EH_AZUL
+	
+LOOP_SOLVE2:
+	beq a2,zero, PAREDE_ESQUERDA_CIMA		# ^
+	beq a2,a3, PAREDE_ESQUERDA_DIREITA 		# ->
+	beq a2,a4, PAREDE_ESQUERDA_BAIXO		# seta pra baixo
+	beq a2,a5, PAREDE_ESQUERDA_ESQUERDA		# <-
+	
+EH_BRANCO:
+	li t2, 0
+	lb t1, -320(t0)
+	beq t1, t2, TEM_PAREDE_EM_CIMA
+	addi a6, a6, 1
+TEM_PAREDE_EM_CIMA:	
+	lb t1, 1(t0)
+	beq t1, t2, TEM_PAREDE_NA_DIREITA
+	addi a6, a6, 1
+TEM_PAREDE_NA_DIREITA:
+	lb t1, 320(t0)
+	beq t1,t2, TEM_PAREDE_EM_BAIXO
+	addi a6,a6, 1
+TEM_PAREDE_EM_BAIXO:	
+	lb t1, -1(t0)
+	beq t1,t2, TEM_PAREDE_NA_ESQUERDA
+	addi a6,a6, 1
+	li t2, 2
+	beq t2, a6, PINTA_AZUL
+	li t1, 15
+	sb t1, 0(t0)
+	j LOOP_SOLVE2
+
+PINTA_AZUL:
+	li t1, 200
+	sb t1, 0(t0)
+	j LOOP_SOLVE2
+	
+EH_VERMELHO:
+	li t1, 255
+	sb t1, 0(t0)
+	j LOOP_SOLVE2
+	
+EH_AZUL:
+	li t1, 15
+	sb t1, 0(t0)
+	j LOOP_SOLVE2
+	
+PAREDE_ESQUERDA_DCIMA:
+	lb t1, -1(t0)
+	li t2, 0
+	beq t1,t2, FRENTE_DCIMA
+	li a2, 3
+	j ANDA_DESQUERDA
+
+FRENTE_DCIMA:
+	lb t1, -320(t0)
+	li t2, 255
+	beq t1, t2, ANDA_DCIMA
+	li a2, 1
+	j LOOP_SOLVE
+	
+ANDA_DCIMA:
+	addi t0, t0, -320
+	j LOOP_SOLVE
+
+PAREDE_ESQUERDA_DDIREITA:
+	lb t1, -320(t0)
+	li t2, 0
+	beq t1,t2, FRENTE_DDIREITA
+	li a2, 0
+	j ANDA_DCIMA
+
+FRENTE_DDIREITA:
+	lb t1, 1(t0)
+	li t2, 255
+	beq t1, t2, ANDA_DDIREITA
+	li a2, 2
+	j LOOP_SOLVE
+	
+ANDA_DDIREITA:
+	addi t0, t0, 1
+	j LOOP_SOLVE
+
+PAREDE_ESQUERDA_DBAIXO:
+	lb t1, 1(t0)
+	li t2, 0
+	beq t1,t2, FRENTE_DBAIXO
+	li a2, 1
+	j ANDA_DDIREITA
+	
+FRENTE_DBAIXO:
+	lb t1, 320(t0)
+	li t2, 255
+	beq t1, t2, ANDA_DBAIXO
+	li a2, 3
+	j LOOP_SOLVE
+	
+ANDA_DBAIXO:
+	addi t0, t0, 320
+	j LOOP_SOLVE
+	
+PAREDE_ESQUERDA_DESQUERDA:
+	lb t1, 320(t0)
+	li t2, 0
+	beq t1,t2, FRENTE_DESQUERDA
+	li a2, 2
+	j ANDA_DBAIXO
+
+FRENTE_DESQUERDA:
+	lb t1, 320(t0)
+	li t2, 255
+	beq t1, t2, ANDA_ESQUERDA
+	li a2, 0
+	j LOOP_SOLVE
+	
+ANDA_ESQUERDA:
+	addi t0, t0, -1
+	j LOOP_SOLVE
+	
+	
+ACHA_ENTRADA:
+	li t1, 255
+	lb t2, 0(t0)
+	beq t1, t2, GUARDA_ENTRADA
+	addi t0, t0, 1
+	addi t3, t3, 1
+	j ACHA_ENTRADA
+	
+GUARDA_ENTRADA:
+	la t1, ENTRADA
+	sw t3, 0(t1)
+	sw t4, 4(t1)
+	ret
+	
+ACHA_SAIDA:
+	li t1, 255
+	lb t2, 0(t0)
+	beq t1, t2, GUARDA_SAIDA
+	addi t0, t0, 1
+	addi t3, t3, 1
+	j ACHA_SAIDA
+	
+GUARDA_SAIDA:
+	la t1, SAIDA
+	sw t3, 0(t1)
+	sw t4, 4(t1)
+	mul t1, t5, t4		# 
+	add t1, t1, t3		# ENDERECO = FF000000 + 320*Y + X)
+	add t0, t0, t1		#
+	ret
+	
+SOLVE_2:
+	li a2, 0
+	li t2, 15
+	la t6, SAIDA
+	li t5, 320
+	lw t3, 0(t6)
+	lw t4, 4(t6)
+	mul a3, t5, t4		# 
+	add a3, a3, t3		# ENDERECO = FF000000 + 320*Y + X)
+	add t0, t0, a3		#
+
+LOOP_VOLTA:
+	beq t0, t1, SOLVE_FIM
+
+	lb t3, 1(t1)
+	beq t2, t3, PROXIMO_PIXEL_DIREITA
+	lb t3, -1(t1)
+	beq t2, t3, PROXIMO_PIXEL_ESQUERDA
+	lb t3, 320(t1)
+	beq t2, t3, PROXIMO_PIXEL_BAIXO
+	lb t3, -320(t1)
+	beq t2, t3, PROXIMO_PIXEL_CIMA
+	
+PROXIMO_PIXEL_DIREITA:
+	sw t3, 4(a1)
+	sw t4, 8(a1)
+	addi t3 , t3 + 1
+	li t5, 255
+	sb t5, 0(t1)
+	addi t1, t1 + 1
+	addi a2, a2, 1
+	addi a1, a1, 8
+	j LOOP_VOLTA
+
+PROXIMO_PIXEL_ESQUERDA:
+	sw t3, 4(a1)
+	sw t4, 8(a1)
+	addi t3 , t3 - 1
+	li t5, 255
+	sb t5, 0(t1)
+	addi t1, t1 - 1
+	addi a2, a2, 1
+	addi a1, a1, 8
+	j LOOP_VOLTA
+	
+PROXIMO_PIXEL_BAIXO:
+	sw t3, 4(a1)
+	sw t4, 8(a1)
+	addi t4 , t4 + 1
+	li t5, 255
+	sb t5, 0(t1)
+	addi t1, t1 + 320
+	addi a2, a2, 1
+	addi a1, a1, 8
+	j LOOP_VOLTA
+	
+PROXIMO_PIXEL_CIMA:
+	sw t3, 4(a1)
+	sw t4, 8(a1)
+	addi t4 , t4 - 1
+	li t5, 255
+	sb t5, 0(t1)
+	addi t1, t1 - 320
+	addi a2, a2, 1
+	addi a1, a1, 8
+	j LOOP_VOLTA
+	
+SOLVE_FIM:
+	li t1, 8
+	mul t2, a2, t1
+	sub a1, a1, t2
+	sw a2, 0(a1)
+	ret 

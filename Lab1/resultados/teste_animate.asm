@@ -13,10 +13,47 @@ COR: .byte 15
 	ecall
 
 draw_maze:
+	addi sp, sp, -4	# prepara a pilha para receber 2 words
+	sw ra, 0(sp)	# empilha ra(End. Retorno)
+	
 	li t0,0xFF000000	# endereco inicial da Memoria VGA - Frame 0
 	lw a1,0(a0)        	# numero de coluna
     	lw a2,4(a0)        	# numero de linhas
 	addi a0,a0,8		# primeiro pixels depois das informações de nlin ncol
+	
+	jal CENTRALIZA
+	lw ra, 0(sp)		# restaurao endereçode retorno
+	addi sp, sp, 4
+	
+	li t2, 0		# pixeis feitos até o momento
+	mul a3, a1, a2		# pixeis no total 
+LOOP2:
+	bge t2, a3, FIM_DRAW	# verifica se ja todos os pixeis ja foram feitos
+	li a4, 0
+LOOP1: 	
+	beq a4,a1, PROXIMA_LINHA	# Terminou de desenha agora vai centralziar
+	lb t3,0(a0)			# le byte do arquivo
+	sb t3,0(t0)			# escreve o byte na memória VGA
+	addi t0,t0,1			# proximo pixel da tela
+	addi a0,a0,1			# proximo pixel do arquivo
+	addi t2,t2,1			# +1 pixel pintado 
+	addi a4,a4,1			# +1 coluna na linha
+	j LOOP1				# volta a verificar
+	
+PROXIMA_LINHA:
+	addi t0,t0,320        		#proxima linha+numero de colunas
+    	sub t0,t0,a1       		#subtrai o numero de colunas
+    	j LOOP2
+
+
+# PRECISA DE: 
+# a1 = numero de colunas
+# a2 = numero de linhas 
+# t0 = endereco inicial
+# RETORNA:
+# t3 = x centralizado
+# t4 = y centralizado
+# t0 = endereco centralizado
 
 CENTRALIZA:
 	li t3, 320		# codigo para achar frame onde o canto superior direito esteja para imagem ficar centralizada
@@ -32,28 +69,10 @@ CENTRALIZA:
 	mul t1, t5, t4		# 
 	add t1, t1, t3		# ENDERECO = FF000000 + 320*Y + X)
 	add t0, t0, t1		#
-	
-	li t2, 0		# pixeis feitos até o momento
-	mul a3, a1, a2		# pixeis no total 
-LOOP2:
-	bge t2, a3, FIM
-	li a4, 0
-LOOP1: 	
-	beq a4,a1, PROXIMA_LINHA	# Terminou de desenha agora vai centralziar
-	lb t3,0(a0)			# le byte do arquivo
-	sb t3,0(t0)			# escreve o byte na memória VGA
-	addi t0,t0,1			# proximo pixel da tela
-	addi a0,a0,1			# proximo pixel do arquivo
-	addi t2,t2,1			# +1 pixel pintado 
-	addi a4,a4,1			# +1 coluna na linha
-	j LOOP1				# volta a verificar
-FIM:
 	ret
-	
-PROXIMA_LINHA:
-	addi t0,t0,320        		#proxima linha+numero de colunas
-    	sub t0,t0,a1       		#subtrai o numero de colunas
-    	j LOOP2        
+
+FIM_DRAW:
+	ret   
 
 animate:
 	lw a1, 0(a0)		# numero de passos
