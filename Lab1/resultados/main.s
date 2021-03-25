@@ -1,19 +1,18 @@
 .data
-.include "mazeteste.s"
 CAMINHO: .space 153600
+.include "maze.data"
 VERMELHO: .byte 15
 AZUL: .byte 200
 BRANCO: .byte 255
 PRETO: .byte 0
 ENTRADA: .word 21, 21
 SAIDA: .word  21, 21
-TRANSPARENTE: .byte 199
 
 .text
 .MAIN:	
-	la a0, mazeteste
+	la a0, maze
 	jal draw_maze
-	la a0, mazeteste
+	la a0, maze
 	la a1, CAMINHO
 	jal solve_maze
 	la a0, CAMINHO
@@ -73,28 +72,28 @@ FIM_DRAW:
 
 
 solve_maze:
-	addi sp, sp, -8	# prepara a pilha para receber 2 words
-	sw ra, 4(sp)	# empilha ra(End. Retorno)
-	sw a1, 0(sp)	# empilha endereco caminho
+	addi sp, sp, -8		# prepara a pilha para receber 2 words
+	sw ra, 4(sp)		# empilha ra(End. Retorno)
+	sw a1, 0(sp)		# empilha endereco caminho
 	li t0,0xFF000000	# endereco inicial da Memoria VGA - Frame 0
 	lw a1,0(a0)        	# numero de coluna
     	lw a2,4(a0)        	# numero de linhas
 	jal CENTRALIZA
-	lw a1, 0(sp)# restaurao valordo argumenton
-	lw ra, 4(sp)# restaurao endereçode retorno
+	lw a1, 0(sp)		# restaura endereco caminho
+	lw ra, 4(sp)		# restaurao endereço de retorno
 	addi sp, sp, 8
 
 	addi sp, sp, -4
-	sw ra, 0(sp)											# a's usados 
-	jal ACHA_ENTRADA										# a0 = mazeteste
-	lw ra, 0(sp)											# a1 = CAMINHNO
+	sw ra, 0(sp)			# empilha RA						# a's usados 
+	jal ACHA_ENTRADA		# x e y da entrada							# a0 = mazeteste
+	lw ra, 0(sp)			# restaura RA						# a1 = CAMINHNO
 	addi sp, sp, 4											# t0 = pixel atual 
 	
 	
 	addi sp, sp, -8	# prepara a pilha para receber 2 words
 	sw ra, 4(sp)	# empilha ra(End. Retorno)
 	sw a1, 0(sp)	# empilha endereco caminho
-	li t0,0xFF000000	# endereco inicial da Memoria VGA - Frame 0
+	li t0,0xFF000000	# endereco inicial da Memoria VGA - Frame 1
 	lw a1,0(a0)        	# numero de coluna
     	lw a2,4(a0)        	# numero de linhas
 	jal CENTRALIZA
@@ -105,50 +104,50 @@ solve_maze:
 	li t5, 320
 	addi a2, a2, -1
 	mul a3, a2, t5
-	add t0, t0, a3	
+	add t0, t0, a3		# bota t4 no ultimo pixel do canto esquerdo do labirinto
 	add t4, t4, a2
 	
 	addi sp, sp, -4
 	sw ra, 0(sp)
-	jal ACHA_SAIDA
+	jal ACHA_SAIDA		# acha x e y da saida
 	lw ra, 0(sp)
 	addi sp, sp, 4
 	
 	
-	li a2, 0			# direcao, 0=cima
-	li a3, 1			# 1=direita
-	li a4, 2			# 2=baixo
-	li a5, 3			# 3=esquerda
+	li a2, 0			# direcao, 0=cima	#
+	li a3, 1			# 1=direita		#
+	li a4, 2			# 2=baixo		#	direção da seta 
+	li a5, 3			# 3=esquerda		#
 	
 	li s2, 0xFF000000
 	la t6, ENTRADA
 	li t5, 320
-	lw t3, 0(t6)
-	lw t4, 4(t6)
+	lw t3, 0(t6)		# x da entrada
+	lw t4, 4(t6)		# y da entrada
 	mul t2, t5, t4		# 
 	add t2, t2, t3		# ENDERECO = FF000000 + 320*Y + X)
 	add s2, s2, t2		#
 	
 LOOP_SOLVE:
 	li a6, 0		# quantidade de caminhos do pixel 
-	beq s2, t0, SOLVE_2
+	beq s2, t0, SOLVE_2	# chegamos na outra saida no maze ?
 	
 	lb t1, 0(t0)
-	la s1, BRANCO
+	la s1, BRANCO		
 	lb t2, 0(s1)
-	beq t1,t2, EH_BRANCO
+	beq t1,t2, EH_BRANCO	# o pixel que eu estou agora é branco ?
 	la s1, VERMELHO
 	lb t2, 0(s1)
-	beq t1,t2, EH_VERMELHO
+	beq t1,t2, EH_VERMELHO	# o pixel que eu estou agora é vermelho ?
 	la s1, AZUL
 	lb t2, 0(s1)
-	beq t1, t2, EH_AZUL
+	beq t1, t2, EH_AZUL	# # o pixel que eu estou agora é azul ?
 	
 LOOP_SOLVE2:
-	beq a2,zero, PAREDE_ESQUERDA_DCIMA		# ^
-	beq a2,a3, PAREDE_ESQUERDA_DDIREITA 		# ->
-	beq a2,a4, PAREDE_ESQUERDA_DBAIXO		# seta pra baixo
-	beq a2,a5, PAREDE_ESQUERDA_DESQUERDA		# <-
+	beq a2,zero, PAREDE_ESQUERDA_DCIMA		# parede da esquerda quando seta pra cima
+	beq a2,a3, PAREDE_ESQUERDA_DDIREITA 		# parede da esquerda quando seta pra direita
+	beq a2,a4, PAREDE_ESQUERDA_DBAIXO		# parede da esquerda quando seta pra baixo
+	beq a2,a5, PAREDE_ESQUERDA_DESQUERDA		# parede da esquerda quando seta pra esquerda
 	
 EH_BRANCO:
 	la s1, PRETO
@@ -161,7 +160,7 @@ EH_BRANCO:
 	la s1, AZUL
 	lb t2, 0(s1)
 	beq t1, t2 TEM_PAREDE_EM_CIMA
-	addi a6, a6, 1
+	addi a6, a6, 1				# se não tem parede em cima então +1 para as possiveis saidas do atual pixel
 TEM_PAREDE_EM_CIMA:	
 	lb t1, 1(t0)
 	la s1, PRETO
@@ -173,7 +172,7 @@ TEM_PAREDE_EM_CIMA:
 	la s1, AZUL
 	lb t2, 0(s1)
 	beq t1, t2, TEM_PAREDE_NA_DIREITA
-	addi a6, a6, 1
+	addi a6, a6, 1				# se não tem parede na direita então +1 para as possiveis saidas do atual pixel
 TEM_PAREDE_NA_DIREITA:
 	lb t1, 320(t0)
 	la s1, PRETO
@@ -185,7 +184,7 @@ TEM_PAREDE_NA_DIREITA:
 	la s1, AZUL
 	lb t2, 0(s1)
 	beq t1,t2, TEM_PAREDE_EM_BAIXO
-	addi a6,a6, 1
+	addi a6,a6, 1				# se não tem parede em baixo então +1 para as possiveis saidas do atual pixel
 TEM_PAREDE_EM_BAIXO:	
 	lb t1, -1(t0)
 	la s1, PRETO
@@ -197,13 +196,13 @@ TEM_PAREDE_EM_BAIXO:
 	la s1, AZUL
 	lb t2, 0(s1)
 	beq t1,t2, TEM_PAREDE_NA_ESQUERDA
-	addi a6,a6, 1
+	addi a6,a6, 1				# se não tem parede na esquerda então +1 para as possiveis saidas do atual pixel
 TEM_PAREDE_NA_ESQUERDA:
 	li t2, 2
-	beq t2, a6, PINTA_AZUL
+	beq t2, a6, PINTA_AZUL			# se 2 possiveis saidas sem contar por onde eu vim então pinta de azul 
 	li t2, 1
-	beq t2, a6 PINTA_VERMELHO
-	j LOOP_SOLVE2
+	beq t2, a6 PINTA_VERMELHO		# se só 1 possivel caminho pinto de vermelho 
+	j LOOP_SOLVE2				# se não tiver caminho não muda a cor
 
 PINTA_VERMELHO:
 	la s1, VERMELHO
@@ -217,18 +216,20 @@ PINTA_AZUL:
 	sb t1, 0(t0)
 	j LOOP_SOLVE2
 	
-EH_VERMELHO:
+EH_VERMELHO:			# se vermelho ja passamos aqui então pinta de branco
 	la s1, BRANCO
 	lb t1, 0(s1)
 	sb t1, 0(t0)
 	j LOOP_SOLVE2
 	
-EH_AZUL:
+EH_AZUL:			# se azul ja passamos aqui mas temos mais um possivel caminho 
 	la s1, VERMELHO
 	lb t1, 0(s1)
 	sb t1, 0(t0)
 	j LOOP_SOLVE2
-	
+
+# AS SEGUINTES FUNÇÕES PAREDE_XXXX, FRENTE_XXXX, ALTERA_BRANCO_XXXX E ANDA_XXXXX SÃO REFERENTE AO ALGORITMO DA MÃO ESQUEDA 	
+
 PAREDE_ESQUERDA_DCIMA:
 	lb t1, -1(t0)
 	la s1, PRETO
@@ -367,7 +368,7 @@ ANDA_DESQUERDA:
 	j LOOP_SOLVE
 	
 	
-ACHA_ENTRADA:
+ACHA_ENTRADA:				# ACHA X E Y DA ENTRADA E GUARDA NA MEMÓRIA
 	la s1, BRANCO
 	lb t1, 0(s1)
 	lb t2, 0(t0)
@@ -382,7 +383,7 @@ GUARDA_ENTRADA:
 	sw t4, 4(t1)
 	ret
 	
-ACHA_SAIDA:
+ACHA_SAIDA:				# ACHA X E Y DA SAIDA E GUARDA NA MEMORIA 
 	la s1, BRANCO
 	lb t1, 0(s1)
 	lb t2, 0(t0)
@@ -397,7 +398,7 @@ GUARDA_SAIDA:
 	sw t4, 4(t1)
 	ret
 	
-SOLVE_2:
+SOLVE_2:				# NESTE MOMENTO TEMOS UMA LINHA VERMELHA REPRESENTANDO O CAMINHO CERTO ESSA FUNÇÃO APAGA ESSA LINHA GUARDANDO O CAMINHO NA MEMORIA PARA QUE O ANIMATE NOVAMENTE O CAMINHO 
 	la s1, VERMELHO
 	lb t1, 0(s1)
 	sb t1, 0(s2)
@@ -416,7 +417,7 @@ SOLVE_2:
 	li t6, 320
 	li s2, 0xFF000000
 	mul a5, t6, t5
-	add a5, a5, t5
+	add a5, a5, t4
 	add s2, s2, a5				
 	
 	la t6, SAIDA
@@ -428,21 +429,24 @@ SOLVE_2:
 	add a5, a5, a3		# ENDERECO = FF000000 + 320*Y + X)
 	add t0, t0, a5		#			# t0 é endereco da saida 
 
-LOOP_VOLTA:
+LOOP_VOLTA:			# LOOP DE VOLTA PARA A ENTRADA/SAIDA
 	beq s2, t0, SOLVE_FIM
 
 	lb t6, 1(s2)
-	beq t2, t6, PROXIMO_PIXEL_DIREITA
+	beq t2, t6, PROXIMO_PIXEL_DIREITA	# CONFERE SE PROXIMO PIXEL A DIREITA É VERMELHO OU AZUL
 	beq t3, t6, PROXIMO_PIXEL_DIREITA
 	lb t6, -1(s2)
-	beq t2, t6, PROXIMO_PIXEL_ESQUERDA
+	beq t2, t6, PROXIMO_PIXEL_ESQUERDA	# CONFERE SE PROXIMO PIXEL A ESQUERDA É VERMELHO OU AZUL
 	beq t3, t6, PROXIMO_PIXEL_ESQUERDA
 	lb t6, 320(s2)
-	beq t2, t6, PROXIMO_PIXEL_BAIXO
+	beq t2, t6, PROXIMO_PIXEL_BAIXO		# CONFERE SE PROXIMO PIXEL A BAIXO É VERMELHO OU AZUL
 	beq t3, t6, PROXIMO_PIXEL_BAIXO
 	lb t6, -320(s2)
-	beq t2, t6, PROXIMO_PIXEL_CIMA
+	beq t2, t6, PROXIMO_PIXEL_CIMA		# CONFERE SE PROXIMO PIXEL A CIMA É VERMELHO OU AZUL
 	beq t3, t6, PROXIMO_PIXEL_CIMA
+	
+# AS FUNÇÕES PROXIMO_PIXEL VOLTA A COR DO PIXEL PARA BRANCO E GUARDAM AS COORDENADAS EM MEMÓRIA
+	
 	
 PROXIMO_PIXEL_DIREITA:
 	sw t4, 4(a1)
@@ -491,8 +495,8 @@ PROXIMO_PIXEL_CIMA:
 	addi a2, a2, 1
 	addi a1, a1, 8
 	j LOOP_VOLTA
-	
-SOLVE_FIM:
+
+SOLVE_FIM:		# APONTA A1 PARA O INICIO DA MEMÓRIA E GUARDA A QUANTIDADE DE PASSOS EM SEGUIDA VOLTA PARA A FUNCAO MAIN
 	li t1, 8
 	mul t2, a2, t1
 	sub a1, a1, t2
